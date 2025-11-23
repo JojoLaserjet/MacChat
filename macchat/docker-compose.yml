@@ -1,0 +1,515 @@
+services:
+  nginx:
+    image: nginx:latest
+    ports: [80:80, 443:443]
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - identity-service
+      - file-storage-service
+      - user-service
+    restart: on-failure
+    networks:
+      - chakchat-secure
+
+  # Identity service
+  identity-service:
+    build: ./identity-service
+    volumes:
+      - ./identity-service/config.yml:/app/config.yml:ro
+      - ./keys:/app/keys:ro
+      - ./certs:/app/certs:ro
+    environment:
+      SMSAERO_EMAIL: ${SMSAERO_EMAIL}
+      SMSAERO_APIKEY: ${SMSAERO_APIKEY}
+      REDIS_PASSWORD: ${IDENTITY_REDIS_PASSWORD}
+      REDIS_HOST: identity-redis
+      REDIS_PORT: 6379
+      REDIS_TLS_ENABLED: "true"
+    depends_on:
+      - identity-redis
+    restart: on-failure
+    networks:
+      - chakchat-secure
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+
+  identity-redis:
+    image: redis:7-alpine
+    command: >
+      redis-server
+      --requirepass ${IDENTITY_REDIS_PASSWORD}
+      --port 6379
+      --bind 127.0.0.1 identity-redis
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
+    volumes:
+      - identity_redis_data:/data
+    restart: on-failure
+    networks:
+      - chakchat-secure
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${IDENTITY_REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # File storage service
+  file-storage-service:
+    build: ./file-storage-service
+    volumes:
+      - ./file-storage-service/config.yml:/app/config.yml:ro
+      - ./keys/rsa.pub:/app/keys/rsa.pub:ro
+      - ./certs:/app/certs:ro
+    environment:
+      FILE_STORAGE_AWS_ACCESS_KEY_ID: ${FILE_STORAGE_AWS_ACCESS_KEY_ID}
+      FILE_STORAGE_AWS_REGION: ${FILE_STORAGE_AWS_REGION}
+      FILE_STORAGE_AWS_ENDPOINT_URL: ${FILE_STORAGE_AWS_ENDPOINT_URL}
+      FILE_STORAGE_AWS_SECRET_ACCESS_KEY: ${FILE_STORAGE_AWS_SECRET_ACCESS_KEY}
+      FILE_STORAGE_S3_BUCKET: ${FILE_STORAGE_S3_BUCKET}
+      FILE_STORAGE_S3_URL_PREFIX: ${FILE_STORAGE_S3_URL_PREFIX}
+      FILE_STORAGE_DB_DSN: host=file-storage-postgres port=5432 user=${FILE_STORAGE_POSTGRES_USER} password=${FILE_STORAGE_POSTGRES_PASSWORD} dbname=${FILE_STORAGE_DB_NAME} sslmode=require sslrootcert=/app/certs/ca.crt
+      FILE_STORAGE_REDIS_PASSWORD: ${FILE_STORAGE_REDIS_PASSWORD}
+      FILE_STORAGE_REDIS_HOST: file-storage-redis
+      FILE_STORAGE_REDIS_PORT: 6379
+      FILE_STORAGE_REDIS_TLS: "true"
+    depends_on:
+      - file-storage-redis
+      - file-storage-postgres
+    restart: on-failure
+    networks:
+      - chakchat-secure
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+  file-storage-postgres:
+    image: postgres:16-alpine
+    ports: ["5434:5432"]
+    volumes:
+      - file_storage_postgres_data:/var/lib/postgresql/data
+      - ./certs:/etc/postgresql/certs:ro
+    environment:
+      POSTGRES_PASSWORD: ${FILE_STORAGE_POSTGRES_PASSWORD}
+      POSTGRES_USER: ${FILE_STORAGE_POSTGRES_USER}
+      POSTGRES_DB: ${FILE_STORAGE_DB_NAME}
+      POSTGRES_INITDB_ARGS: "-c ssl=on -c ssl_cert_file=/etc/postgresql/certs/server.crt -c ssl_key_file=/etc/postgresql/certs/server.key"
+    restart: on-failure
+    networks:
+      - chakchat-secure
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - DAC_OVERRIDE
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${FILE_STORAGE_POSTGRES_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  file-storage-redis:
+    image: redis:7-alpine
+    command: >
+      redis-server
+      --requirepass ${FILE_STORAGE_REDIS_PASSWORD}
+      --port 6379
+      --bind 127.0.0.1 file-storage-redis
+      --maxmemory 512mb
+      --maxmemory-policy allkeys-lru
+    volumes:
+      - file_storage_redis_data:/data
+    restart: on-failure
+    networks:
+      - chakchat-secure
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${FILE_STORAGE_REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  file-storage-minio:
+    image: minio/minio:latest
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - file_storage_minio_data:/data
+      - ./certs:/root/.minio/certs:ro
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+      MINIO_SERVER_URL: https://minio:9000
+      MINIO_BROWSER_REDIRECT_URL: https://localhost:9001
+    command: ["server", "/data", "--address", ":9000", "--console-address", ":9001", "--certs-dir", "/root/.minio/certs"]
+    restart: on-failure
+    networks:
+      - chakchat-secure
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETGID
+      - SETUID
+      
+  # User service
+  user-service:
+    build: 
+      context: user-service
+      dockerfile: Dockerfile
+    environment:
+      DB_DSN: postgres://${USER_SERVICE_POSTGRES_USER}:${USER_SERVICE_POSTGRES_PASSWORD}@user-postgres:5432/${USER_SERVICE_DB_NAME}?sslmode=require&sslrootcert=/app/certs/ca.crt
+    depends_on:
+      user-postgres:
+        condition: service_healthy
+    volumes:
+      - ./user-service/config.yml:/app/config.yml
+      - ./keys/rsa.pub:/app/keys/rsa.pub:ro
+      - ./certs:/app/certs:ro
+    restart: on-failure
+    networks:
+      - chakchat-secure
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+  user-postgres:
+    image: postgres:16-alpine
+    ports: ["5433:5432"]
+    environment:
+      POSTGRES_USER: ${USER_SERVICE_POSTGRES_USER}
+      POSTGRES_PASSWORD: ${USER_SERVICE_POSTGRES_PASSWORD}
+      POSTGRES_DB: ${USER_SERVICE_DB_NAME}
+      POSTGRES_INITDB_ARGS: "-c ssl=on -c ssl_cert_file=/etc/postgresql/certs/server.crt -c ssl_key_file=/etc/postgresql/certs/server.key"
+    restart: on-failure
+    volumes:
+      - user_postgres_data:/var/lib/postgresql/data
+      - ./certs:/etc/postgresql/certs:ro
+    networks:
+      - chakchat-secure
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - DAC_OVERRIDE
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${USER_SERVICE_POSTGRES_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  user-flyway:
+    image: flyway/flyway:latest
+    command: ["migrate"]
+    environment:
+      FLYWAY_URL: jdbc:postgresql://user-postgres:5432/${USER_SERVICE_DB_NAME}
+      FLYWAY_USER: ${USER_SERVICE_POSTGRES_USER}
+      FLYWAY_PASSWORD: ${USER_SERVICE_POSTGRES_PASSWORD}
+      FLYWAY_LOCATIONS: filesystem:/app/migrations
+      FLYWAY_VALIDATE_MIGRATION_NAMING: "true"
+      FLYWAY_BASELINE_ON_MIGRATE: "true"
+    volumes:
+      - ./user-service/migrations:/app/migrations
+    depends_on:
+      user-postgres:
+        condition: service_healthy
+    restart: on-failure
+    networks:
+      - chakchat-secure
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+  messaging-service:
+    build: ./messaging-service
+    volumes:
+      - ./messaging-service/config.yml:/app/config.yml:ro
+      - ./keys/rsa.pub:/app/keys/rsa.pub:ro
+      - ./certs:/app/certs:ro
+    depends_on:
+      messaging-postgres:
+        condition: service_healthy
+      messaging-redis:
+        condition: service_healthy
+    environment:
+      DB_CONN_STRING: postgres://${MESSAGING_POSTGRES_USER}:${MESSAGING_POSTGRES_PASSWORD}@messaging-postgres:5432/${MESSAGING_DB_NAME}?sslmode=require&sslrootcert=/app/certs/ca.crt
+      MESSAGING_REDIS_PASSWORD: ${MESSAGING_REDIS_PASSWORD}
+      MESSAGING_REDIS_HOST: messaging-redis
+      MESSAGING_REDIS_PORT: 6379
+      MESSAGING_REDIS_TLS: "true"
+    restart: on-failure
+    networks:
+      - chakchat-secure
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+  messaging-redis:
+    image: redis:7-alpine
+    command: >
+      redis-server
+      --requirepass ${MESSAGING_REDIS_PASSWORD}
+      --port 6379
+      --bind 127.0.0.1 messaging-redis
+      --maxmemory 512mb
+      --maxmemory-policy allkeys-lru
+    volumes:
+      - messaging_redis_data:/data
+    restart: on-failure
+    networks:
+      - chakchat-secure
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${MESSAGING_REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  messaging-postgres:
+    image: postgres:16-alpine
+    volumes:
+      - messaging_postgres_data:/var/lib/postgresql/data
+      - ./certs:/etc/postgresql/certs:ro
+    ports: ["5432:5432"]
+    environment:
+      POSTGRES_PASSWORD: ${MESSAGING_POSTGRES_PASSWORD}
+      POSTGRES_USER: ${MESSAGING_POSTGRES_USER}
+      POSTGRES_DB: ${MESSAGING_DB_NAME}
+      POSTGRES_INITDB_ARGS: "-c ssl=on -c ssl_cert_file=/etc/postgresql/certs/server.crt -c ssl_key_file=/etc/postgresql/certs/server.key"
+    restart: on-failure
+    networks:
+      - chakchat-secure
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - DAC_OVERRIDE
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${MESSAGING_POSTGRES_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  messaging-flyway:
+    image: flyway/flyway:latest
+    command: ["migrate"]
+    environment:
+      FLYWAY_URL: jdbc:postgresql://messaging-postgres:5432/${MESSAGING_DB_NAME}
+      FLYWAY_USER: ${MESSAGING_POSTGRES_USER}
+      FLYWAY_PASSWORD: ${MESSAGING_POSTGRES_PASSWORD}
+      FLYWAY_LOCATIONS: filesystem:/app/migrations
+      FLYWAY_VALIDATE_MIGRATION_NAMING: "true"
+      FLYWAY_BASELINE_ON_MIGRATE: "true"
+    volumes:
+      - ./messaging-service/migrations:/app/migrations
+    depends_on:
+      messaging-postgres:
+        condition: service_healthy
+    restart: on-failure
+    networks:
+      - chakchat-secure
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+  # ml is [M]essaging [L]ive connection
+  ml-kafka:
+    image: bitnami/kafka:latest
+    environment:
+      KAFKA_CFG_NODE_ID: 0
+      KAFKA_CFG_PROCESS_ROLES: controller,broker
+      KAFKA_CFG_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
+      KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_CFG_CONTROLLER_QUORUM_VOTERS: 0@ml-kafka:9093
+      KAFKA_CFG_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      ALLOW_PLAINTEXT_LISTENER: "no"
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://ml-kafka:9092
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
+      KAFKA_LOG_RETENTION_HOURS: 24
+    volumes:
+      - ml_kafka_data:/bitnami/kafka
+    networks:
+      - chakchat-secure
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+  live-connection-service:
+    build: ./live-connection-service
+    volumes:
+      - ./live-connection-service/config.yml:/app/config.yml:ro
+      - ./keys/rsa.pub:/app/keys/rsa.pub:ro
+      - ./certs:/app/certs:ro
+    environment:
+      PG_CONN_STRING: postgres://${LIVE_CONNECTION_POSTGRES_USER}:${LIVE_CONNECTION_POSTGRES_PASSWORD}@live-connection-postgres:5432/${LIVE_CONNECTION_DB_NAME}?sslmode=require&sslrootcert=/app/certs/ca.crt
+    depends_on:
+      live-connection-postgres:
+        condition: service_healthy
+    restart: on-failure
+    networks:
+      - chakchat-secure
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+  live-connection-postgres:
+    image: postgres:16-alpine
+    volumes:
+      - live_connection_postgres_data:/var/lib/postgresql/data
+      - ./certs:/etc/postgresql/certs:ro
+    environment:
+      POSTGRES_PASSWORD: ${LIVE_CONNECTION_POSTGRES_PASSWORD}
+      POSTGRES_USER: ${LIVE_CONNECTION_POSTGRES_USER}
+      POSTGRES_DB: ${LIVE_CONNECTION_DB_NAME}
+      POSTGRES_INITDB_ARGS: "-c ssl=on -c ssl_cert_file=/etc/postgresql/certs/server.crt -c ssl_key_file=/etc/postgresql/certs/server.key"
+    restart: on-failure
+    networks:
+      - chakchat-secure
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - DAC_OVERRIDE
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${LIVE_CONNECTION_POSTGRES_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  live-connection-flyway:
+    image: flyway/flyway:latest
+    command: ["migrate"]
+    environment:
+      FLYWAY_URL: jdbc:postgresql://live-connection-postgres:5432/${LIVE_CONNECTION_DB_NAME}
+      FLYWAY_USER: ${LIVE_CONNECTION_POSTGRES_USER}
+      FLYWAY_PASSWORD: ${LIVE_CONNECTION_POSTGRES_PASSWORD}
+      FLYWAY_LOCATIONS: filesystem:/app/migrations
+      FLYWAY_VALIDATE_MIGRATION_NAMING: "true"
+      FLYWAY_BASELINE_ON_MIGRATE: "true"
+    volumes:
+      - ./live-connection-service/migrations:/app/migrations
+    depends_on:
+      live-connection-postgres:
+        condition: service_healthy
+    restart: on-failure
+    networks:
+      - chakchat-secure
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+
+  # ln is [L]ive connection [N]otification 
+  ln-kafka:
+    image: bitnami/kafka:latest
+    environment:
+      KAFKA_CFG_NODE_ID: 0
+      KAFKA_CFG_PROCESS_ROLES: controller,broker
+      KAFKA_CFG_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
+      KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_CFG_CONTROLLER_QUORUM_VOTERS: 0@ln-kafka:9093
+      KAFKA_CFG_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      ALLOW_PLAINTEXT_LISTENER: "no"
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://ln-kafka:9092
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
+      KAFKA_LOG_RETENTION_HOURS: 24
+    volumes:
+      - ln_kafka_data:/bitnami/kafka
+    networks:
+      - chakchat-secure
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+  # Stubs
+  sms-service-stub:
+    build:
+      context: stubs/sms-service-stub
+    restart: on-failure
+    networks:
+      - chakchat-secure
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+  # Observability
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:latest
+    command: ["--config=/etc/otel-collector-config.yaml"]
+    volumes:
+      - ./otel-collector-config.yaml:/etc/otel-collector-config.yaml:ro
+    restart: on-failure
+    networks:
+      - chakchat-secure
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    ports: [16686:16686]
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+    restart: on-failure
+    networks:
+      - chakchat-secure
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+volumes:
+  file_storage_redis_data:
+  file_storage_postgres_data:
+  file_storage_minio_data:
+  identity_redis_data:
+  user_postgres_data:
+  messaging_redis_data:
+  messaging_postgres_data:
+  ml_kafka_data:
+  ln_kafka_data:
+  live_connection_postgres_data:
+
+networks:
+  chakchat-secure:
+    driver: bridge
+    driver_opts:
+      com.docker.network.bridge.default_bridge: "false"
+      com.docker.network.bridge.enable_icc: "true"
+      com.docker.network.bridge.enable_ip_masquerade: "true"
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

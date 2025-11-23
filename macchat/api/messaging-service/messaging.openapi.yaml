@@ -1,0 +1,2847 @@
+openapi: 3.0.3
+info:
+  title: chakchat-backend
+  version: 0.0.1
+servers:
+  - url: http://localhost:80/api/messaging/v1.0/
+tags:
+  - name: "chats"
+  - name: "personal chat"
+  - name: "secret personal chat"
+  - name: "group chat"
+  - name: "secret group chat"
+  - name: "personal update"
+  - name: "secret personal update"
+  - name: "group update"
+  - name: "secret group update"
+paths:
+# All chats
+  /chat/all:
+    get:
+      summary: Get all chats
+      description: Get all chats
+      tags: [chats]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    "$ref": "#/components/schemas/AllChatsResponse"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema: 
+                $ref: '#/components/schemas/ErrorResponse'
+  /chat/{chatId}:
+    get:
+      summary: Get chat
+      description: Get chat
+      tags: [chats]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: chatId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/GenericChat'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseWithDetails'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+# Personal chat
+  /chat/personal:
+    post:
+      summary: Create chat
+      description: Create chat
+      tags: [personal chat]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Idempotency key
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePersonalChatRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/PersonalChat'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseWithDetails'
+  /chat/personal/{chatId}/block: 
+    put:
+      summary: Block chat
+      description: Block chat
+      tags: [personal chat]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: chatId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/PersonalChat'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseWithDetails'
+  /chat/personal/{chatId}/unblock:
+    put:
+      summary: Unblock chat
+      description: Unblock chat
+      tags: [personal chat]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: chatId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/PersonalChat'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseWithDetails'
+  /chat/personal/{chatId}/{deleteMode}:
+    delete:
+      summary: Delete chat
+      description: Delete chat
+      tags: [personal chat]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: chatId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: deleteMode
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [only_me, all]
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmptySuccessResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseWithDetails'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+# Secret personal chat
+  /chat/personal/secret:
+    post:
+      summary: Create secret chat
+      description: Create secret chat
+      tags: ["secret personal chat"]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          description: Idempotency key
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateSecretChatRequest'
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/SecretPersonalChat'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseWithDetails'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /chat/personal/secret/{chatId}/expiration:
+    put:
+      summary: Set expiration period for secret chat
+      description: Set expiration period for secret chat
+      tags: ["secret personal chat"]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: chatId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SetExpirationRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/SecretPersonalChat'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseWithDetails'
+  /chat/personal/secret/{chatId}/{deleteMode}:
+    delete:
+      summary: Delete chat
+      description: Delete chat
+      tags: ["secret personal chat"]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: chatId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: deleteMode
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [only_me, all]
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmptySuccessResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseWithDetails'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+# Group chat
+  /chat/group:
+    post:
+      summary: Create a group
+      description: Create a group
+      tags: [group chat]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/CreateGroupRequest"
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    "$ref": "#/components/schemas/GroupChat"
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponseWithDetails"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+  /chat/group/{chatId}:
+    put:
+      tags: [group chat]
+      summary: Update group chat
+      description: Update group chat
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: chatId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateGroupChatRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/GroupChat'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      tags: [group chat]
+      summary: Delete group chat
+      description: Delete group chat
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    "$ref": "#/components/schemas/GroupChat"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+  /chat/group/{chatId}/member/{memberId}:
+    put:
+      summary: Add new member
+      description: Add new member to group chat
+      tags: ["group chat"]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: chatId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: memberId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/GroupChat"
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+    delete:
+      summary: Delete a group chat member
+      description: Delete a group chat member
+      tags: [group chat]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: chatId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: memberId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    "$ref": "#/components/schemas/GroupChat"
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+  /chat/group/{chatId}/photo:
+    put:
+      summary: Update group photo
+      description: Update group photo
+      tags: [group chat]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: chatId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateGroupPhotoRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/GroupChat'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseWithDetails'
+    delete:
+      summary: Delete group photo
+      description: Delete group photo
+      tags: [group chat]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: chatId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    "$ref": "#/components/schemas/GroupChat"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+
+# Secret group chat
+  /chat/group/secret:
+    post:
+      summary: Create secret group chat
+      description: Create secret group chat
+      tags: ["secret group chat"]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          description: Idempotency key
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateSecretGroupRequest'
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/SecretGroupChat'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseWithDetails'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /chat/group/secret/{chatId}:
+    put:
+      tags: ["secret group chat"]
+      summary: Update group chat
+      description: Update group chat
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: chatId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateSecretGroupRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/SecretGroupChat'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      tags: ["secret group chat"]
+      summary: Delete group chat
+      description: Delete group chat
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/EmptySuccessResponse"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+  /chat/group/secret/{chatId}/member/{memberId}:
+    put:
+      summary: Add new member
+      description: Add new member to group chat
+      tags: ["secret group chat"]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: chatId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: memberId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    "$ref": "#/components/schemas/SecretGroupChat"
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+    delete:
+      summary: Delete secret group member
+      description: Delete secret group member
+      tags: ["secret group chat"]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: chatId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    "$ref": "#/components/schemas/SecretGroupChat"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+  /chat/group/secret/{chatId}/photo:
+    put:
+      summary: Update group photo
+      description: Update group photo
+      tags: ["secret group chat"]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: chatId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateSecretGroupPhotoRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/SecretGroupChat'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseWithDetails'
+    delete:
+      summary: Delete group photo
+      description: Delete group photo
+      tags: ["secret group chat"]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: chatId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    "$ref": "#/components/schemas/SecretGroupChat"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+
+# Updates
+  /chat/{chatId}/update:
+    get:
+      tags: ["update"]
+      summary: Get updates in range
+      description: Get updates in range
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: chatId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: from
+          in: query
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: to
+          in: query
+          description: Inclusive bound.
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      updates:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/GenericUpdate'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseWithDetails'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /chat/personal/{chatId}/update/message/search:
+    get:
+      summary: Search for messages
+      description: Search for messages
+      tags: ["personal update"]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: chatId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: offset
+          description: offset counted from last messages
+          in: query
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: limit
+          in: query
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: pattern
+          description: Search pattern. (For now it is just a substring of message text)
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: sender_id
+          description: Sender id
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/GenericUpdate'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseWithDetails'
+  /chat/personal/{chatId}/update/message/text:
+    post:
+      summary: Send text message
+      description: Send text message
+      tags: ["personal update"]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: chatId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SendTextMessageRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/TextMessage'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseWithDetails'
+  /chat/personal/{chatId}/update/message/{updateId}/{deleteMode}:
+    delete:
+      summary: Delete message
+      description: Delete message
+      tags: ["personal update"]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: chatId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: updateId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: deleteMode
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [only_me, all]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    "$ref": "#/components/schemas/GenericUpdate"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+  /chat/personal/{chatId}/update/message/text/{updateId}:
+    put:
+      summary: Edit text message
+      description: Edit text message
+      tags: ["personal update"]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: chatId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: updateId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EditTextMessageRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/TextMessage'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseWithDetails'
+
+  /chat/personal/{chatId}/update/message/file:
+    post:
+      summary: Send file message
+      description: Send file message
+      tags: ["personal update"]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: chatId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SendFileMessageRequest'
+      responses:
+        '200':
+          description: File message sent
+          content:
+            application/json: 
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/FileMessage'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseWithDetails'
+  /chat/personal/{chatId}/update/reaction:
+    post:
+      summary: Send reaction
+      description: Send reaction
+      tags: ["personal update"]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: chatId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SendReactionRequest'
+      responses:
+        '200':
+          description: Reaction sent
+          content:
+            application/json: 
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/ReactionUpdate'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseWithDetails'
+  /chat/personal/{chatId}/update/reaction/{updateId}:
+    delete:
+      summary: Delete reaction
+      description: Delete reaction
+      tags: ["personal update"]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: chatId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: updateId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    "$ref": "#/components/schemas/GenericUpdate"
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponseWithDetails"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+  /chat/personal/{chatId}/update/text-message/forward:
+    post:
+      summary: Forward message
+      description: Forward message
+      tags: ["personal update"]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: chatId
+          description: Chat ID where to forward to.
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ForwardMessageRequest'
+      responses:
+        '200':
+          description: Message forwarded
+          content:
+            application/json: 
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/GenericUpdate'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '400':  
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseWithDetails'
+  /chat/personal/{chatId}/update/file-message/forward:
+    post:
+      summary: Forward message
+      description: Forward message
+      tags: ["personal update"]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: chatId
+          description: Chat ID where to forward to.
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ForwardMessageRequest'
+      responses:
+        '200':
+          description: Message forwarded
+          content:
+            application/json: 
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/GenericUpdate'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '400':  
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseWithDetails'
+
+  /chat/group/{chatId}/update/message/search:
+    get:
+      summary: Search for messages
+      description: Search for messages
+      tags: ["group update"]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: chatId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: offset
+          description: offset counted from last messages
+          in: query
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: limit
+          in: query
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: pattern
+          description: Search pattern. (For now it is just a substring of message text)
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: sender_id
+          description: Sender id
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/GenericUpdate'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseWithDetails'
+  /chat/group/{chatId}/update/message/text:
+    post:
+      summary: Send text message
+      description: Send text message
+      tags: ["group update"]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: chatId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SendTextMessageRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/TextMessage'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseWithDetails'
+  /chat/group/{chatId}/update/message/{updateId}/{deleteMode}:
+    delete:
+      summary: Delete message
+      description: Delete message
+      tags: ["group update"]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: chatId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: updateId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: deleteMode
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [only_me, all]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    "$ref": "#/components/schemas/GenericUpdate"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+  /chat/group/{chatId}/update/message/text/{updateId}:
+    put:
+      summary: Edit text message
+      description: Edit text message
+      tags: ["group update"]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: chatId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: updateId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EditTextMessageRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/TextMessage'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseWithDetails'
+
+  /chat/group/{chatId}/update/message/file:
+    post:
+      summary: Send file message
+      description: Send file message
+      tags: ["group update"]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: chatId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SendFileMessageRequest'
+      responses:
+        '200':
+          description: File message sent
+          content:
+            application/json: 
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/FileMessage'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseWithDetails'
+  /chat/group/{chatId}/update/reaction:
+    post:
+      summary: Send reaction
+      description: Send reaction
+      tags: ["group update"]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: chatId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SendReactionRequest'
+      responses:
+        '200':
+          description: Reaction sent
+          content:
+            application/json: 
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/ReactionUpdate'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseWithDetails'
+  /chat/group/{chatId}/update/reaction/{updateId}:
+    delete:
+      summary: Delete reaction
+      description: Delete reaction
+      tags: ["group update"]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: chatId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: updateId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    "$ref": "#/components/schemas/GenericUpdate"
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponseWithDetails"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+  /chat/group/{chatId}/update/text-message/forward:
+    post:
+      summary: Forward message
+      description: Forward message
+      tags: ["group update"]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: chatId
+          description: Chat ID where to forward to.
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ForwardMessageRequest'
+      responses:
+        '200':
+          description: Message forwarded
+          content:
+            application/json: 
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/GenericUpdate'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '400':  
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseWithDetails'
+  /chat/group/{chatId}/update/file-message/forward:
+    post:
+      summary: Forward message
+      description: Forward message
+      tags: ["group update"]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: chatId
+          description: Chat ID where to forward to.
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ForwardMessageRequest'
+      responses:
+        '200':
+          description: Message forwarded
+          content:
+            application/json: 
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/GenericUpdate'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '400':  
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseWithDetails'
+ 
+# Secret updates
+  /chat/personal/secret/{chatId}/update/secret:
+    post:
+      summary: Send secret message
+      description: Send secret message
+      tags: ["secret personal update"]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: chatId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SendSecretUpdateRequest'
+      responses:
+        '200':
+          description: Secret message sent
+          content:
+            application/json: 
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/SecretUpdate'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseWithDetails'
+  /chat/personal/secret/{chatId}/update/secret/{updateId}:
+    delete:
+      summary: Delete secret message
+      description: Delete secret message
+      tags: ["secret personal update"]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: chatId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: updateId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    "$ref": "#/components/schemas/GenericUpdate"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+ 
+# Secret updates
+  /chat/group/secret/{chatId}/update/secret:
+    post:
+      summary: Send secret message
+      description: Send secret message
+      tags: ["secret group update"]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: chatId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SendSecretUpdateRequest'
+      responses:
+        '200':
+          description: Secret message sent
+          content:
+            application/json: 
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/SecretUpdate'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseWithDetails'
+  /chat/group/secret/{chatId}/update/secret/{updateId}:
+    delete:
+      summary: Delete secret message
+      description: Delete secret message
+      tags: ["secret group update"]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: chatId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: updateId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    "$ref": "#/components/schemas/GenericUpdate"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    UpdateSecretGroupPhotoRequest:
+      type: object
+      properties:
+        photo_id:
+          type: string
+          format: uuid
+          description: Photo id. It is used to identify photo loaded to file storage.
+      required:
+        - photo_id
+    UpdateSecretGroupRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+      required:
+        - name
+        - description
+    SecretUpdate:
+      type: object
+      properties:
+        update_id:
+          type: integer
+          format: int64
+        chat_id:
+          type: string
+          format: uuid
+        sender_id:
+          type: string
+          format: uuid
+        created_at:
+          type: string
+          format: date-time
+        content:
+          type: object
+          properties:
+            payload:
+              type: string
+              format: binary
+            initialization_vector:
+              type: string
+              format: binary
+            key_hash:
+              type: string
+              format: binary
+          required:
+            - payload
+            - initialization_vector
+            - key_hash
+      required:
+        - update_id
+        - chat_id
+        - sender_id
+        - created_at
+        - content
+    SendSecretUpdateRequest:
+      type: object
+      properties:
+        payload:
+          type: string
+          format: binary
+        initialization_vector:
+          type: string
+          format: binary
+        key_hash:
+          type: string
+          format: binary
+      required:
+        - payload
+        - initialization_vector
+        - key_hash
+    ForwardMessageRequest:
+      type: object
+      properties:
+        message: 
+          type: integer
+        from_chat_id:
+          type: string
+          format: uuid
+      required:
+        - message
+        - from_chat_id
+    SendReactionRequest:
+      type: object
+      properties:
+        reaction:
+          type: string
+        message_id:
+          type: string
+          format: uuid
+      required:
+        - reaction
+        - message_id
+    ReactionUpdate:
+      type: object
+      properties:
+        update_id:
+          type: integer
+          format: int64
+        chat_id:
+          type: string
+          format: uuid
+        sender_id:
+          type: string
+          format: uuid
+        created_at:
+          type: string
+          format: date-time
+        content:
+          type: object
+          properties:
+            reaction:
+              type: string
+              description: Reaction
+            message_id:
+              type: string
+              format: uuid
+              description: Message id
+          required:
+            - reaction
+            - message_id
+      required:
+        - update_id
+        - chat_id
+        - sender_id
+        - created_at
+        - content
+    SendFileMessageRequest:
+      type: object
+      properties:
+        file_id:
+          type: string
+          format: uuid
+        reply_to:
+          type: string
+          format: uuid
+      required:
+        - file_id
+        - reply_to
+    FileMessage:
+      type: object
+      properties:
+        update_id:
+          type: integer
+          format: int64
+        chat_id:
+          type: string
+          format: uuid
+        sender_id:
+          type: string
+          format: uuid
+        created_at:
+          type: string
+          format: date-time
+        content:
+          type: object
+          properties:
+            file:
+              $ref: '#/components/schemas/FileMetadata'
+            reply_to:
+              type: string
+              format: uuid
+              description: Message id to reply to
+            forwarded:
+              type: boolean
+            reactions:
+              type: array
+              items:
+                # TODO: If there are many reactions then it may be too big.
+                $ref: '#/components/schemas/ReactionUpdate'
+          required:
+            - file
+            - reply_to
+            - forwarded
+            - reactions
+      required:
+        - update_id
+        - chat_id
+        - sender_id
+        - created_at
+        - content
+    FileMetadata:
+      type: object
+      properties:
+        file_name:
+          type: string
+          description: File name
+        file_size:
+          type: integer
+          description: File size
+        mime_type:
+          type: string
+          description: File mime type
+        file_id: 
+          type: string
+          description: File ID
+          format: uuid
+        file_url:
+          type: string
+          description: File URL
+          format: url
+        created_at:
+          type: string
+          description: File creation date
+          format: date-time
+      required:
+        - file_name
+        - file_size 
+        - mime_type
+        - file_id
+        - file_url
+        - created_at
+    EditTextMessageRequest:
+      type: object
+      properties:
+        text:
+          type: string
+      required:
+        - text
+    SendTextMessageRequest:
+      type: object
+      properties:
+        text:
+          type: string
+        reply_to:
+          type: string
+          format: uuid
+      required:
+        - text
+        - reply_to
+    TextMessage:
+      type: object
+      properties:
+        update_id:
+          type: integer
+          format: int64
+        chat_id:
+          type: string
+          format: uuid
+        sender_id:
+          type: string
+          format: uuid
+        created_at:
+          type: string
+          format: date-time
+        content:
+          type: object
+          properties:
+            text:
+              type: string
+              description: Text message
+            reply_to:
+              type: string
+              format: uuid
+              description: Message id to reply to
+            forwarded:
+              type: boolean
+            reactions:
+              type: array
+              items:
+                # TODO: If there are many reactions then it may be too big.
+                $ref: '#/components/schemas/ReactionUpdate'
+          required:
+            - text
+            - reply_to
+            - forwarded
+            - reactions
+      required:
+        - update_id
+        - chat_id
+        - sender_id
+        - created_at
+        - content
+    AllChatsResponse:
+      type: object
+      properties:
+        chats:
+          type: array
+          items:
+            $ref: '#components/schemas/GenericChat'
+      required:
+        - chats
+    GenericUpdate:
+      type: object
+      properties:
+        update_id:
+          type: integer
+          format: int64
+        chat_id:
+          type: string
+          format: uuid
+        sender_id:
+          type: string
+          format: uuid
+        created_at:
+          type: string
+          format: date-time
+        content:
+          type: object
+          description: Message content. It will vary depending on message type.
+      required:
+        - update_id
+        - chat_id
+        - sender_id
+        - created_at
+        - content
+    GenericChat:
+      type: object
+      properties:
+        chat_id:
+          type: string
+          format: uuid
+        type:
+          type: string
+          enum: [personal, personal_secret, group, group_secret]
+        members:
+          type: array
+          items:
+            type: string
+            format: uuid
+        info:
+          type: object
+        last_update_id:
+          type: integer
+          format: int64``
+          description: Last update id
+        preview:
+          type: array
+          items:
+            $ref: '#components/schemas/GenericUpdate'
+          description: Chat preview
+      required:
+        - chat_id
+        - type
+        - info
+        - members
+        - preview
+    UpdateGroupPhotoRequest:
+      type: object
+      properties:
+        photo_id:
+          type: string
+          format: uuid
+          description: Photo id. It is used to identify photo loaded to file storage.
+      required:
+        - photo_id
+    CreateGroupRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        members:
+          type: array
+          items:
+            type: string
+            format: uuid
+      required:
+        - name
+        - description
+        - members
+    CreateSecretGroupRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        members:
+          type: array
+          items:
+            type: string
+            format: uuid
+      required:
+        - name
+        - description
+        - members
+    UpdateGroupChatRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+      required:
+        - name
+        - description
+    GroupChat:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+        members:
+          type: array
+          items:
+            type: string
+            format: uuid
+        created_at:
+          type: string
+          format: date-time
+        admin_id:
+          type: string
+          format: uuid
+        group_photo:
+          type: string
+          format: url
+      required:
+        - id
+        - name
+        - description
+        - members
+        - created_at
+        - admin_id
+    SecretGroupChat:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+        members:
+          type: array
+          items:
+            type: string
+            format: uuid
+        created_at:
+          type: string
+          format: date-time
+        admin_id:
+          type: string
+          format: uuid
+        group_photo:
+          type: string
+          format: url
+        expiration:
+          type: string
+          example: "24h"
+          nullable: true
+          description: Secret chat messages expiration period
+      required:
+        - id
+        - name
+        - description
+        - members
+        - created_at
+        - admin_id
+        - expiration
+    CreateSecretChatRequest:
+      type: object
+      properties:
+        member_id:
+          type: string
+          format: uuid
+      required:
+        - member_id
+    CreatePersonalChatRequest:
+      type: object
+      properties:
+        member_id:
+          type: string
+          format: uuid
+      required:
+        - member_id
+    PersonalChat:
+      type: object
+      properties:
+        chat_id:
+          type: string
+          format: uuid
+        members:
+          type: array
+          items:
+            type: string
+            format: uuid
+        blocked:
+          type: boolean
+        blocked_by:
+          type: array
+          items:
+            type: string
+            format: uuid
+          description: List of user ids who blocked this chat
+      required:
+        - chat_id
+        - members
+        - blocked
+        - blocked_by
+    SetExpirationRequest:
+      type: object
+      properties:
+        expiration:
+          type: string
+          example: "24h"
+          nullable: true
+          description: Secret chat messages expiration period
+      required:
+        - expiration
+    SecretPersonalChat:
+      type: object
+      properties:
+        chat_id:
+          type: string
+          format: uuid
+        members:
+          type: array
+          items:
+            type: string
+            format: uuid
+        expiration:
+          type: string
+          example: "24h"
+          nullable: true
+          description: Secret chat messages expiration period
+      required:
+        - chat_id
+        - members
+    EmptySuccessResponse:
+      type: object
+      example: {}
+    ErrorResponseWithDetails:
+      type: object
+      description: Error response specified by standard.md
+      properties:
+        error_type:
+          type: string
+          nullable: false
+        error_message:
+          type: string
+          nullable: false
+        error_details:
+          type: array
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+                nullable: false
+              message:
+                type: string
+                nullable: false
+      example:
+        error_type: verification_failed
+        error_message: Input is invalid
+        error_details:
+          - field: some_field
+            message: Some field is invalid  
+    ErrorResponse:
+      type: object
+      description: Error response specified by standard.md
+      properties:
+        error_type:
+          type: string
+          nullable: false
+        error_message:
+          type: string
+          nullable: false
+        error_details:
+          type: array
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+                nullable: false
+              message:
+                type: string
+                nullable: false
+      example:
+        error_type: invalid_input
+        error_message: Input is invalid
+        error_details: []

@@ -1,0 +1,40 @@
+[package]
+name = "chakchat-p2p"
+version = "1.0.0"
+edition = "2021"
+description = "P2P Network Layer for ChakChat - Decentralized DHT-based discovery"
+license = "MIT"
+authors = ["ChakChat Team"]
+
+[dependencies]
+# Async runtime
+tokio = { version = "1.35", features = ["full"] }
+async-trait = "0.1"
+
+# Networking
+quinn = "0.11"                 # QUIC protocol
+webrtc = "0.9"                 # WebRTC
+stun = "0.5"                   # STUN
+turn = "0.6"                   # TURN
+
+# Utilities
+chrono = "0.4"
+uuid = { version = "1.6", features = ["v4", "serde"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+thiserror = "1.0"
+log = "0.4"
+tracing = "0.1"
+tracing-subscriber = "0.3"
+
+# Cryptography (from our crypto library)
+chakchat-crypto = { path = "../crypto" }
+
+[dev-dependencies]
+tokio-test = "0.4"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+strip = true

@@ -1,0 +1,630 @@
+openapi: 3.0.3
+info:
+  title: User Service REST API
+  description: User Service REST API
+  version: "1.0"
+servers:
+  - url: http://localhost:80/api/user/v1.0/
+    description: nginx reverse-proxied localhost
+tags:
+  - name: others
+    description: Other users info
+  - name: me 
+    description: User info about requesting user
+# Response body follows the standard described in standard.md
+paths:
+  /username/{username}:
+    get:
+      summary: Get status of user's existency
+      description: Check existency of user by username.
+      tags:
+        - others
+      parameters:
+        - name: username
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties: 
+                  data:
+                    $ref: '#/components/schemas/GetUserStatus'
+
+  /user/{userId}:
+    get:
+      summary: Get user info
+      description: Gets user profile info with restrictions.
+      tags:
+        - others
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/UserProfile'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                "$ref": '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                "$ref": '#/components/schemas/ErrorResponse'
+  /user/username/{username}:
+    get:
+      summary: Get user info
+      description: Gets user profile info with restrictions.
+      tags:
+        - others
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: username
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/UserProfile'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                "$ref": '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                "$ref": '#/components/schemas/ErrorResponse'
+  /users:
+    get:
+      summary: Find users by search criteria
+      description: Finds users by search criteria. Pagination is supported. At least one search criteria must be specified.
+      tags:
+        - others
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: name
+          in: query
+          required: false
+          schema:
+            type: string
+            nullable: true
+        - name: username
+          in: query
+          required: false
+          schema:
+            type: string
+            nullable: true
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: integer
+            format: int32
+            nullable: true
+        - name: limit
+          description: Limits the number of records to be returned. Default is 10.
+          in: query
+          required: false
+          schema:
+            type: integer
+            format: int32
+            nullable: true
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/SearchUsersResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                "$ref": '#/components/schemas/ErrorResponse'
+        '400':
+          description: Bad Request. Most likely no criteria is specified.
+          content:
+            application/json:
+              schema:
+                "$ref": '#/components/schemas/ErrorResponseWithDetails'
+  /users/{users}:  
+    get:
+      summary: Get status of user's status onpine
+      description: Gets status online and last time user was online.
+      tags:
+        - others
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: users
+          in: query
+          schema:
+            type: array
+            items:
+              type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties: 
+                  data:
+                    $ref: '#/components/schemas/GetUsersResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                "$ref": '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found users by id.
+          content:
+            application/json:
+              schema:
+                "$ref": '#/components/schemas/ErrorResponse'
+  /me:
+    get:
+      summary: Get user info about requesting user
+      description: Gets user profile info
+      tags:
+        - me
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/UserProfile'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                "$ref": '#/components/schemas/ErrorResponse'
+    put:
+      summary: Update user info about requesting user
+      description: Updates user profile info
+      tags:
+        - me
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserProfile'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/UserProfile'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                "$ref": '#/components/schemas/ErrorResponse'
+        '400':
+          description: Bad Request. Most likely validation error.
+          content:
+            application/json:
+              schema:
+                "$ref": '#/components/schemas/ErrorResponse'
+    delete:
+      summary: Delete user
+      description: Delete user
+      tags:
+        - me
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Successfully verified phone number.
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/EmptySuccessResponse"
+        '401':
+          description: Authorization error. Couldn't find user. 
+          content:
+            application/json:
+              schema:
+                "$ref": '#/components/schemas/ErrorResponseWithDetails'
+
+  /me/profile-photo:
+    put:
+      summary: Update profile photo
+      description: Update profile photo
+      tags:
+        - me
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/UpdateProfilePhoto"
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    "$ref": "#/components/schemas/UserProfile"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                "$ref": '#/components/schemas/ErrorResponse'
+        '400':
+          description: Bad Request. Maybe photo is invalid.
+          content:
+            application/json:
+              schema:
+                "$ref": '#/components/schemas/ErrorResponseWithDetails'
+        '404':
+          description: Not Found. Maybe user is not found.
+          content:
+            application/json:
+              schema:
+                "$ref": '#/components/schemas/ErrorResponseWithDetails'
+    delete:
+      summary: Delete profile photo
+      description: Delete profile photo
+      tags:
+        - me
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/UserProfile"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                "$ref": '#/components/schemas/ErrorResponse'
+        '400':
+          description: Not Found. Maybe user is not found.
+          content:
+            application/json:
+              schema:
+                "$ref": '#/components/schemas/ErrorResponse'
+
+  /me/restrictions:
+    get:
+      summary: Get own user's restrictions
+      description: Gets own user's restrictions
+      tags:
+        - me
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/UserRestrictions'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                "$ref": '#/components/schemas/ErrorResponse'
+    put:
+      summary: Update own user's restrictions
+      description: Updates own user's restrictions
+      tags:
+        - me
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/UserRestrictions"
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    "$ref": "#/components/schemas/UserRestrictions"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                "$ref": '#/components/schemas/ErrorResponse'
+        '400':
+          description: Bad Request.
+          content:
+            application/json:
+              schema:
+                "$ref": '#/components/schemas/ErrorResponseWithDetails'
+  # Just to make life a little bit funnier.
+  # It may be removed in case of you are a real teapot yourself and are jealous of this teapot.
+  # https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/418
+  /are-you-a-real-teapot:
+    get:
+      summary: Are you a teapot? (No real meaning) 
+      description: Are you a teapot?
+      responses:
+        '418':
+          description: I'm a teapot
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    EmptySuccessResponse:
+      type: object
+      example: {}
+    UpdateProfilePhoto:
+      type: object
+      properties:
+        photo_id:
+          type: string
+          format: uuid
+          nullable: false
+      required:
+        - photo
+    SearchUsersResponse:
+      type: object
+      properties:
+        users:
+          type: array
+          items:
+            "$ref": "#/components/schemas/UserProfile"
+        offset:
+          type: integer
+        count:
+          type: integer
+      required:
+        - users
+        - offset
+        - count
+    ErrorResponseWithDetails:
+      type: object
+      description: Error response specified by standard.md
+      properties:
+        error_type:
+          type: string
+          nullable: false
+        error_message:
+          type: string
+          nullable: false
+        error_details:
+          type: array
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+                nullable: false
+              message:
+                type: string
+                nullable: false
+      example:
+        error_type: invalid_input
+        error_message: Input is invalid
+        error_details:
+          - field: some_field
+            message: Some field is invalid    
+    ErrorResponse:
+      type: object
+      description: Error response specified by standard.md
+      properties:
+        error_type:
+          type: string
+          nullable: false
+        error_message:
+          type: string
+          nullable: false
+        error_details:
+          type: array
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+                nullable: false
+              message:
+                type: string
+                nullable: false
+      example:
+        error_type: invalid_input
+        error_message: Input is invalid
+        error_details: []
+    UserRestrictions:
+      description: User restrictions info. It is used only for view by users themselves.
+      type: object
+      properties:
+        phone:
+          "$ref": "#/components/schemas/FieldRestriction"
+        dateOfBirth:
+          "$ref": "#/components/schemas/FieldRestriction"
+      required:
+        - phone
+        - dateOfBirth
+    FieldRestriction:
+      type: object
+      properties:
+        open_to: 
+          enum: [everyone, only_me, specified]
+          type: string
+          nullable: false
+        specified_users:
+          type: array
+          items:
+            type: string
+            format: uuid
+            nullable: false
+            description: User ids
+      required:
+        - open_to
+    RequestPhoneCode:
+      properties:
+        phone:
+          type: string
+          format: phone
+          nullable: false
+      required:
+        - phone
+    VerifyPhoneCode:
+      properties:
+        phone:
+          type: string
+          format: phone
+          nullable: false
+        code:
+          type: string
+          nullable: false
+      required:
+        - phone
+        - code
+    UserProfile:
+      description: User profile info. It is used only for view.
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          nullable: false
+        name:
+          type: string
+          nullable: false
+        username:
+          type: string
+          nullable: false
+        phone:
+          type: string
+          format: phone
+          nullable: true
+          description: User phone number. May be null if user that made a request is stricted to see this phone number.
+        photo:
+          type: string
+          format: url
+          nullable: true
+          description: User photo url. May be null if it is not set.
+        date_of_birth:
+          type: string
+          format: date
+          nullable: true
+          description: User date of birth. May be null if user that made a request is stricted to see this date of birth.
+        createdAt:
+          type: string
+          format: date
+          nullable: false
+          description: Date of creating the user.
+      required:
+        - id
+        - name
+        - username
+      example:
+        id: 35bdbf25-7715-41d2-b77b-6f69b49ce0a9
+        name: John Doe
+        username: johndoe
+        phone: +1234567890
+        photo: https://example.com/johndoe.jpg
+        dateOfBirth: 1990-01-01
+        createdAt: 2025-01-04T15:04:05
+    UpdateUserProfile:
+      description: User profile info. It is used only for update. Contains only updateble fields.
+      type: object
+      properties:
+        name:
+          type: string
+          nullable: false
+        username:
+          type: string
+          nullable: false
+        dateOfBirth:
+          type: string
+          format: date
+          nullable: true
+    GetUserStatus:
+      description: User existency by username without authorization.
+      type: object
+      properties:
+        user_exists:
+          type: boolean
+          nullable: false
+    GetUsersResponse:
+      type: object
+      properties:
+        users:
+          type: array
+          items:
+            "$ref": "#/components/schemas/UserProfile"
+      required:
+        - users

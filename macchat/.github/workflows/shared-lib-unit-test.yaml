@@ -1,0 +1,30 @@
+name: Shared Go Library Unit Test
+
+on:
+  push:
+    branches:
+      - '**'
+    paths:
+        - shared/go/**.go
+        - shared/go/**/go.mod
+        - .github/workflows/shared-lib-unit-test.yaml
+  pull_request:
+    branches:
+      - main
+    paths:
+      - shared/go/**.go
+      - shared/go/**/go.mod
+      - .github/workflows/shared-lib-unit-test.yaml
+jobs:
+    unit-test:
+      runs-on: ubuntu-latest
+      steps:
+        - uses: actions/checkout@v2
+        - name: Set up Go
+          uses: actions/setup-go@v2
+          with:
+            go-version: 1.23.1
+        - name: Test
+          run: |
+            cd shared/go
+            go test -v -race ./...

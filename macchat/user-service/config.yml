@@ -1,0 +1,16 @@
+server:
+  grpc-port: "50051" 
+
+jwt:
+  signing_method: RS256
+  lifetime: 3m
+  issuer: identity_service
+  audience: 
+    - user_service
+  key_file_path: /app/keys/rsa.pub
+
+otlp:
+  grpc_addr: otel-collector:4317
+
+filestorage:
+  grpc_addr: file-storage-service:9090

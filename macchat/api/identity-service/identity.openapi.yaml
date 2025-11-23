@@ -1,0 +1,493 @@
+openapi: 3.0.3
+info:
+  title: Identity Service
+  description: Identity Service REST API 
+  version: "1.0"
+servers:
+  - url: http://localhost:80/api/identity/v1.0/
+    description: nginx reverse-proxied localhost
+tags:
+  - name: sign in/out
+    description: Sign In user
+  - name: signup
+    description: Sign Up user
+paths:
+  /signin/send-phone-code:
+    post:
+      summary: Sign In user
+      description: | 
+        Sign In user
+        Possible `error_type` values:
+        - `invalid_json`
+        - `validation_failed`
+        - `user_not_found`
+        - `send_code_freq_exceeded`
+        - `internal`
+      tags:
+        - sign in/out
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/SendCodeRequest"
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/SendCodeResponse'
+        '400':
+          description: Bad Request.
+          content:
+            application/json:
+              schema:
+                "$ref": '#/components/schemas/ErrorResponseWithDetails'
+        '404':
+          description: Not Found.
+          content:
+            application/json:
+              schema:
+                "$ref": '#/components/schemas/ErrorResponse'
+  /signin:
+    post:
+      summary: Sign In user
+      description: |
+        Sign In user
+        Possible `error_type` values:
+        - `invalid_json`
+        - `validation_failed`
+        - `signin_key_not_found`
+        - `wrong_code`
+        - `internal`
+      tags:
+        - sign in/out
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/SignInRequest"
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/SignInResponse'
+        '400':
+          description: Bad Request.
+          content:
+            application/json:
+              schema: 
+                "$ref": '#/components/schemas/ErrorResponseWithDetails'
+  /refresh-token:
+    post:
+      summary: Refresh user token
+      description: |
+        Refresh user token
+        Possible `error_type` values:
+        - `invalid_json`
+        - `refresh_token_expired`
+        - `refresh_token_invalidated`
+        - `invalid_token_type`
+        - `invalid_token`
+        - `internal`
+      tags:
+        - sign in/out
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/RefreshTokenRequest"
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/RefreshTokenResponse'
+        '400':
+          description: Bad Request.
+          content:
+            application/json:
+              schema: 
+                "$ref": '#/components/schemas/ErrorResponseWithDetails'
+  /sign-out:
+    put:
+      summary: Sign Out user
+      description: | 
+        Sign Out user
+        Possible `error_type` values:
+        - `invalid_json`
+        - `invalid_token`
+        - `internal`
+      tags:
+        - sign in/out
+      parameters:
+        - name: Authorization
+          in: header
+          required: true
+          schema:
+            type: string
+            format: jwt
+      requestBody:
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/SignOutRequest"
+      responses:
+        '200':
+          description: OK. Also returned if the user's refresh token already expired
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmptySuccessResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                "$ref": '#/components/schemas/ErrorResponse'
+  /signup/send-phone-code:
+    post:
+      summary: Request for phone number verification code.
+      description: |
+        Signup user
+        Possible `error_type` values:
+        - `invalid_json`
+        - `validation_failed`
+        - `user_already_exists`
+        - `send_code_freq_exceeded`
+        - `internal`
+      tags:
+        - signup
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/SignUpSendPhoneCodeRequest"
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    "$ref": '#/components/schemas/SignUpSendPhoneCodeResponse'
+        '400':
+          description: Bad Request. Maybe phone number is already used.
+          content:
+            application/json:
+              schema:
+                "$ref": '#/components/schemas/ErrorResponse'
+  /signup/verify-code:
+    post:
+      summary: Verify phone number verification code.
+      description: |
+        Verify phone number verification code
+        Possible `error_type` values:
+        - `invalid_json`
+        - `signup_key_not_found`
+        - `wrong_code`
+        - `internal`
+      tags:
+        - signup
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/SignUpVerifyPhoneCodeRequest"
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                "$ref": '#/components/schemas/EmptySuccessResponse'
+        '400':
+          description: Bad Request. Maybe phone number is already used or code is invalid.
+          content:
+            application/json:
+              schema:
+                "$ref": '#/components/schemas/ErrorResponseWithDetails'
+  # I guess it is idempotent because phone number should be unique.
+  /signup:
+    post:
+      summary: Sign Up user
+      description: |
+        Sign Up userw
+        Possible `error_type` values:
+        - `invalid_json`
+        - `validation_failed`
+        - `username_already_exists`
+        - `signup_key_not_found`
+        - `phone_not_verified`
+        - `internal`
+      tags:
+        - signup
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema: 
+              "$ref": "#/components/schemas/SignUpRequest"
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/SignInResponse'
+        '400':
+          description: Bad Request.
+          content:
+            application/json:
+              schema:
+                "$ref": '#/components/schemas/ErrorResponseWithDetails'
+components:
+  schemas:
+    RefreshTokenRequest:
+      type: object
+      properties:
+        refresh_token:
+          type: string
+          format: jwt
+          nullable: false
+      required:
+        - refresh_token
+      example:
+        refresh_token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODlhczAiLCJuYW1lIjoiSm9obiBEZHNvZSIsImlhdCI6MTUxNjIzOTAyMn0.gMtW_LPAMSJXOwU4GhTlnC7tgLI_ILtrr6CQw26U784
+    RefreshTokenResponse:
+      type: object
+      properties:
+        access_token:
+          type: string
+          format: jwt
+          nullable: false
+        refresh_token:
+          type: string
+          format: jwt
+          nullable: false
+      required:
+        - access_token  
+        - refresh_token
+      example:
+        access_token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c
+        refresh_token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODlhczAiLCJuYW1lIjoiSm9obiBEZHNvZSIsImlhdCI6MTUxNjIzOTAyMn0.gMtW_LPAMSJXOwU4GhTlnC7tgLI_ILtrr6CQw26U784
+    SendCodeRequest:
+      type: object
+      properties:
+        phone:
+          type: string
+          format: phone
+          nullable: false
+      required:
+        - phone
+    SendCodeResponse:
+      type: object
+      properties:
+        signin_key:
+          description: The device should use the key generated for phone code request. It connects requests.
+          type: string
+          format: uuid
+          nullable: false
+      required:
+        - signin_key
+    SignInResponse:
+      type: object
+      properties:
+        access_token:
+          type: string
+          format: jwt
+          nullable: false
+        refresh_token:
+          type: string
+          format: jwt
+          nullable: false
+      required:
+        - access_token
+        - refresh_token
+      example:
+        access_token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c
+        refresh_token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODlhczAiLCJuYW1lIjoiSm9obiBEZHNvZSIsImlhdCI6MTUxNjIzOTAyMn0.gMtW_LPAMSJXOwU4GhTlnC7tgLI_ILtrr6CQw26U784
+    SignInRequest:
+      type: object
+      properties:
+        signin_key:
+          description: The device should generate the key and use it to sign in 
+          type: string
+          format: uuid
+          nullable: false
+        code:
+          type: string
+          nullable: false
+      required:
+        - phone
+        - code
+    SignOutRequest:
+      type: object
+      properties:
+        refresh_token:
+          type: string
+          format: jwt
+          nullable: false
+      required:
+        - refresh_token
+    SignUpSendPhoneCodeRequest:
+      type: object
+      properties:
+        phone:
+          type: string
+          format: phone
+          nullable: false
+      required:
+        - phone
+    SignUpSendPhoneCodeResponse:
+      type: object
+      properties:
+        signup_key:
+          description: The device should use the key generated for phone code request. It connects requests.
+          type: string
+          format: uuid
+          nullable: false
+      required:
+        - signin_key
+    SignUpVerifyPhoneCodeRequest:
+      type: object
+      properties:
+        signup_key:
+          type: string
+          format: uuid
+          nullable: false
+        code:
+          type: string
+          nullable: false
+      required:
+        - signup_key
+        - code
+    SignUpRequest:
+      properties:
+        signup_key:
+          type: string
+          format: uuid
+          nullable: false
+        name:
+          type: string
+          nullable: false
+        username:
+          type: string
+          nullable: false
+      required:
+        - signin_key
+        - name
+        - username
+    EmptySuccessResponse:
+      type: object
+      example: {}
+    ErrorResponseWithDetails:
+      type: object
+      description: Error response specified by standard.md
+      properties:
+        error_type:
+          type: string
+          nullable: false
+        error_message:
+          type: string
+          nullable: false
+        error_details:
+          type: array
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+                nullable: false
+              message:
+                type: string
+                nullable: false
+      example:
+        error_type: verification_failed
+        error_message: Input is invalid
+        error_details:
+          - field: some_field
+            message: Some field is invalid  
+    ErrorResponse:
+      type: object
+      description: Error response specified by standard.md
+      properties:
+        error_type:
+          type: string
+          nullable: false
+        error_message:
+          type: string
+          nullable: false
+        error_details:
+          type: array
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+                nullable: false
+              message:
+                type: string
+                nullable: false
+      example:
+        error_type: invalid_input
+        error_message: Input is invalid
+        error_details: []
