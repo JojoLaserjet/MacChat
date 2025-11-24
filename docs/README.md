@@ -1,10 +1,7 @@
 [![Status](https://img.shields.io/badge/status-in%20development-yellow)](https://github.com/JojoLaserjet/macchat)
 [![License](https://img.shields.io/badge/license-apache-blue.svg)](LICENSE)
-[![Security](https://img.shields.io/badge/security-post--quantum-green)](docs/SECURITY.md)
 
 # MacChat 🔐
-
-> **The Most Secure Peer-to-Peer Messenger on Earth**
 
 MacChat is an evolution of ChakChat, designed from the ground up with uncompromising security, privacy, and decentralization. Built for those who refuse to trust central authorities with their communications.
 
