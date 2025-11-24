@@ -62,8 +62,6 @@ Even if quantum computers break one layer tomorrow, your messages remain secure.
 
 ## 🏗️ Architecture Overview
 
-![MacChat Architecture](./docs/architecture.png)
-
 ### Network Topology
 ```
 ┌─────────────────────────────────────────────────────┐
@@ -150,7 +148,7 @@ Alice sends: "Hello Bob"
        ↓
 ┌─────────────────────────────────┐
 │  4. Layer 3: Twofish encrypt    │
-│     Result: ��@#$%^&*��@#��@#    │
+│     Result: ��@#$%^&*��@#��     │
 └─────────────────────────────────┘
        ↓
 ┌─────────────────────────────────┐
@@ -372,7 +370,6 @@ dotnet run
 ## 📖 Documentation
 
 - **[Architecture Deep Dive](docs/ARCHITECTURE.md)** - Complete system architecture
-- **[Security Model](docs/SECURITY.md)** - Threat model and cryptographic design
 - **[API Reference](docs/API.md)** - Backend API documentation
 - **[Deployment Guide](docs/DEPLOYMENT.md)** - Production deployment checklist
 - **[Contributing Guidelines](CONTRIBUTING.md)** - How to contribute
@@ -393,7 +390,7 @@ MacChat is open source and welcomes contributions! Whether you're:
 ### Security Issues
 **DO NOT** open public issues for security vulnerabilities.
 
-Contact: security@macchat.dev (PGP key available)
+Contact (Discord): #xbxnnet_ 
 
 We offer bug bounties for verified security issues.
 
@@ -410,9 +407,7 @@ Read [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
 
 ## 📜 License
 
-MacChat is licensed under the MIT License. See [LICENSE](LICENSE) for details.
-
-**TL;DR:** You can use, modify, and distribute MacChat freely, but we provide no warranty.
+MacChat is licensed under the Apache 2.0 License. See [LICENSE](LICENSE) for details.
 
 ---
 
@@ -429,10 +424,7 @@ MacChat is licensed under the MIT License. See [LICENSE](LICENSE) for details.
 ## 📞 Contact
 
 - **Creator:** [@JojoLaserjet](https://github.com/JojoLaserjet)
-- **Website:** https://macchat.dev (coming soon)
-- **Twitter:** [@macchat_dev](https://twitter.com/macchat_dev)
-- **Email:** hello@macchat.dev
-- **Security:** security@macchat.dev
+- **Discord:** [#xbxnnet_]
 
 ---
 
