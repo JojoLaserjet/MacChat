@@ -1,5 +1,5 @@
 [![Status](https://img.shields.io/badge/status-in%20development-yellow)](https://github.com/JojoLaserjet/macchat)
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![License](https://img.shields.io/badge/license-apache-blue.svg)](LICENSE)
 [![Security](https://img.shields.io/badge/security-post--quantum-green)](docs/SECURITY.md)
 
 # MacChat 🔐
